@@ -73,7 +73,6 @@ public class DeadCodeDetection extends MethodAnalysis {
         // keep statements (dead code) sorted in the resulting set
         Set<Stmt> deadCode = new TreeSet<>(Comparator.comparing(Stmt::getIndex));
 
-        // Traverse from CFG entry and mark statements that are actually reachable.
         Set<Stmt> reachable = new HashSet<>();
         Deque<Stmt> workList = new ArrayDeque<>();
         Stmt entry = cfg.getEntry();
@@ -84,7 +83,6 @@ public class DeadCodeDetection extends MethodAnalysis {
             Stmt stmt = workList.poll();
             Set<Edge<Stmt>> outEdges = cfg.getOutEdgesOf(stmt);
             if (stmt instanceof If ifStmt) {
-                // If condition is constant, only the feasible branch is explored.
                 Value cond = ConstantPropagation.evaluate(ifStmt.getCondition(), constants.getInFact(stmt));
                 for (Edge<Stmt> edge : outEdges) {
                     boolean feasible = true;
@@ -103,7 +101,6 @@ public class DeadCodeDetection extends MethodAnalysis {
                 continue;
             }
             if (stmt instanceof SwitchStmt switchStmt) {
-                // For constant switch values, keep matching case/default only.
                 Value cond = ConstantPropagation.evaluate(switchStmt.getVar(), constants.getInFact(stmt));
                 boolean hasMatchedCase = false;
                 int caseValue = 0;
@@ -139,7 +136,6 @@ public class DeadCodeDetection extends MethodAnalysis {
             }
         }
 
-        // Any IR statement never reached from entry is unreachable dead code.
         for (Stmt stmt : ir.getStmts()) {
             if (!reachable.contains(stmt)) {
                 deadCode.add(stmt);
@@ -150,7 +146,6 @@ public class DeadCodeDetection extends MethodAnalysis {
             if (!reachable.contains(stmt)) {
                 continue;
             }
-            // Dead assignment: result is not live and RHS has no observable side effect.
             if (stmt instanceof AssignStmt<?, ?> assignStmt &&
                     assignStmt.getLValue() instanceof Var lhs &&
                     !liveVars.getOutFact(stmt).contains(lhs) &&
